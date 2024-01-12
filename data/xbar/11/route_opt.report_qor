@@ -1,0 +1,212 @@
+****************************************
+Report : qor
+Design : xbar
+Version: P-2019.03-SP1
+Date   : Fri Nov  4 03:42:27 2022
+****************************************
+Information: Timer using 'PrimeTime Delay Calculation, SI, Timing Window Analysis, AWP, CRPR'. (TIM-050)
+
+
+Scenario           'mode_norm.fast.RCmin'
+Timing Path Group  'clk'
+----------------------------------------
+Levels of Logic:                      0
+Critical Path Length:             21.48
+Critical Path Slack:             -37.51
+Critical Path Clk Period:         10.00
+Total Negative Slack:          -8385.46
+No. of Violating Paths:             395
+Worst Hold Violation:             -9.15
+Total Hold Violation:           -165.35
+No. of Hold Violations:              45
+----------------------------------------
+
+Scenario           'mode_norm.fast.RCmin'
+Timing Path Group  'REGIN'
+----------------------------------------
+Levels of Logic:                      6
+Critical Path Length:            195.11
+Critical Path Slack:            -153.25
+Critical Path Clk Period:         10.00
+Total Negative Slack:         -55603.00
+No. of Violating Paths:             408
+Worst Hold Violation:              0.00
+Total Hold Violation:              0.00
+No. of Hold Violations:               0
+----------------------------------------
+
+Scenario           'mode_norm.fast.RCmin'
+Timing Path Group  'REGOUT'
+----------------------------------------
+Levels of Logic:                      0
+Critical Path Length:             22.14
+Critical Path Slack:            -195.70
+Critical Path Clk Period:         10.00
+Total Negative Slack:         -72167.43
+No. of Violating Paths:             396
+Worst Hold Violation:              0.00
+Total Hold Violation:              0.00
+No. of Hold Violations:               0
+----------------------------------------
+
+Scenario           'mode_norm.fast.RCmin_bc'
+Timing Path Group  'clk'
+----------------------------------------
+Worst Hold Violation:             -9.15
+Total Hold Violation:           -166.40
+No. of Hold Violations:              45
+----------------------------------------
+
+Scenario           'mode_norm.fast.RCmin_bc'
+Timing Path Group  'REGIN'
+----------------------------------------
+Worst Hold Violation:              0.00
+Total Hold Violation:              0.00
+No. of Hold Violations:               0
+----------------------------------------
+
+Scenario           'mode_norm.fast.RCmin_bc'
+Timing Path Group  'REGOUT'
+----------------------------------------
+Worst Hold Violation:              0.00
+Total Hold Violation:              0.00
+No. of Hold Violations:               0
+----------------------------------------
+
+Scenario           'mode_norm.slow.RCmax'
+Timing Path Group  'clk'
+----------------------------------------
+Levels of Logic:                      0
+Critical Path Length:             24.24
+Critical Path Slack:             -43.53
+Critical Path Clk Period:         10.00
+Total Negative Slack:          -9626.24
+No. of Violating Paths:             395
+----------------------------------------
+
+Scenario           'mode_norm.slow.RCmax'
+Timing Path Group  'REGIN'
+----------------------------------------
+Levels of Logic:                      6
+Critical Path Length:            205.52
+Critical Path Slack:            -173.99
+Critical Path Clk Period:         10.00
+Total Negative Slack:         -60569.07
+No. of Violating Paths:             408
+----------------------------------------
+
+Scenario           'mode_norm.slow.RCmax'
+Timing Path Group  'REGOUT'
+----------------------------------------
+Levels of Logic:                      0
+Critical Path Length:             25.25
+Critical Path Slack:            -199.22
+Critical Path Clk Period:         10.00
+Total Negative Slack:         -72841.21
+No. of Violating Paths:             396
+----------------------------------------
+
+Scenario           'mode_norm.worst_low.RCmax'
+Timing Path Group  'clk'
+----------------------------------------
+Levels of Logic:                      0
+Critical Path Length:             28.57
+Critical Path Slack:             -51.75
+Critical Path Clk Period:         10.00
+Total Negative Slack:         -11978.22
+No. of Violating Paths:             395
+----------------------------------------
+
+Scenario           'mode_norm.worst_low.RCmax'
+Timing Path Group  'REGIN'
+----------------------------------------
+Levels of Logic:                      6
+Critical Path Length:            218.08
+Critical Path Slack:            -174.64
+Critical Path Clk Period:         10.00
+Total Negative Slack:         -62378.84
+No. of Violating Paths:             408
+----------------------------------------
+
+Scenario           'mode_norm.worst_low.RCmax'
+Timing Path Group  'REGOUT'
+----------------------------------------
+Levels of Logic:                      0
+Critical Path Length:             29.39
+Critical Path Slack:            -218.50
+Critical Path Clk Period:         10.00
+Total Negative Slack:         -79927.44
+No. of Violating Paths:             396
+----------------------------------------
+
+
+Cell Count
+----------------------------------------
+Hierarchical Cell Count:             12
+Hierarchical Port Count:             78
+Leaf Cell Count:                   7814
+Buf/Inv Cell Count:                2480
+Buf Cell Count:                     622
+Inv Cell Count:                    1858
+CT Buf/Inv Cell Count:                0
+Combinational Cell Count:          7406
+Sequential Cell Count:              408
+Macro Count:                          0
+----------------------------------------
+
+
+Area
+----------------------------------------
+Combinational Area:             1972.13
+Noncombinational Area:           593.95
+Buf/Inv Area:                    570.85
+Total Buffer Area:               231.31
+Total Inverter Area:             339.54
+Macro/Black Box Area:              0.00
+Net Area:                             0
+Net XLength:                       0.00
+Net YLength:                       0.00
+----------------------------------------
+Cell Area (netlist):                           2566.08
+Cell Area (netlist and physical only):         2566.08
+Net Length:                        0.00
+
+
+Design Rules
+----------------------------------------
+Total Number of Nets:              8348
+Nets with Violations:                 0
+Max Trans Violations:                 0
+Max Cap Violations:                   0
+----------------------------------------
+
+1
+****************************************
+Report : qor
+        -summary
+Design : xbar
+Version: P-2019.03-SP1
+Date   : Fri Nov  4 03:42:27 2022
+****************************************
+Information: Timer using 'PrimeTime Delay Calculation, SI, Timing Window Analysis, AWP, CRPR'. (TIM-050)
+
+Timing
+---------------------------------------------------------------------------
+Context                                 WNS            TNS            NVE
+---------------------------------------------------------------------------
+mode_norm.fast.RCmin (Setup)        -195.70     -136155.89           1199
+mode_norm.slow.RCmax (Setup)        -199.22     -143036.52           1199
+mode_norm.worst_low.RCmax (Setup)        -218.50     -154284.50           1199
+Design             (Setup)          -218.50     -154348.17           1199
+
+mode_norm.fast.RCmin (Hold)           -9.15        -165.35             45
+mode_norm.fast.RCmin_bc (Hold)          -9.15        -166.40             45
+Design             (Hold)             -9.15        -166.40             45
+---------------------------------------------------------------------------
+
+Miscellaneous
+---------------------------------------------------------------------------
+Cell Area (netlist):                           2566.08
+Cell Area (netlist and physical only):         2566.08
+Nets with DRC Violations:        0
+1
