@@ -1,0 +1,24 @@
+****************************************
+Report : report_utilization
+Design : xbar
+Version: P-2019.03-SP1
+Date   : Sun Oct 30 18:46:52 2022
+****************************************
+Utilization Ratio:			0.9934
+Utilization options:
+ - Area calculation based on:		site_row of block xbar/route_opt
+ - Categories of objects excluded:	hard_macros macro_keepouts soft_macros io_cells hard_blockages 
+Total Area:				2294.7103
+Total Capacity Area:			2294.7103
+Total Area of cells:			2279.6698
+Area of excluded objects:
+ - hard_macros         :		0.0000
+ - macro_keepouts      :		0.0000
+ - soft_macros         :		0.0000
+ - io_cells            :		0.0000
+ - hard_blockages      :		0.0000
+
+Utilization of site-rows with:
+ - Site 'unit':				0.9934
+
+0.9934
