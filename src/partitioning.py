@@ -3,7 +3,6 @@ import random
 import numpy as np
 import pandas as pd
 import heapq
-import matplotlib.pyplot as plt
 from scipy.sparse import coo_matrix
 from torch_geometric.utils.convert import from_scipy_sparse_matrix
 from networkx.algorithms.community import kernighan_lin_bisection as kl_bisection
