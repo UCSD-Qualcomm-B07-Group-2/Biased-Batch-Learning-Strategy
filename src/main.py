@@ -1,33 +1,45 @@
-from batching import Batcher
-from load import load_data
-# import psutil
-import memory_profiler
+from arguments import params
+from torch_geometric.data import ClusterData, ClusterLoader
 
-# process = psutil.Process()
-# mem_before = process.memory_info().rss
-# mem_after = process.memory_info().rss
-# print(f'Memory used by data memory usage: {mem_after - mem_before}')
+from torch import load as torch_load
+import os
 
-@profile
-def batching():
-    data = load_data()
-    batcher = Batcher(batch_size=4, method="random")
-    batch_generator = batcher(data)
+from models import GCN
 
-    for batch in batch_generator:
-        print(batch)
+device = 'cpu'
 
-@profile
-def non_batching():
-    data = load_data()
-    batcher = Batcher(batch_size=4, method="random")
-    batch_generator = batcher(data)
-    batches = list(batch_generator)
-    for batch in batches:
-        print(batch)
+def load_cache():
+    # Construct the file path
+    datasets = []
+    for m in range(1, 4):
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        file_path = os.path.join(base_dir, '..', 'cache', f'data_{m}.pt')
+
+        # Check if the file exists
+        if os.path.exists(file_path):
+            # Load data from cache
+            data = torch_load(file_path)
+            datasets.append(data)
+
+    # If the file does not exist, return None
+    return datasets
 
 if __name__ == '__main__':
-    # non_batching()
-    batching()
+    args = params()
+
+    # write a function that checks if cache exists
+    datasets = load_cache()
+    batcher = ClusterData(datasets[0], 10)
+    print(batcher)
+
+
+    # if args.task == 'baseline':
+    #     model = GCN(args, batcher, target_size=60).to(device)
+    #     baseline_train(args, model, datasets, batcher)
+    #     run_eval(args, model, datasets, batcher, split='test')
+    # elif args.task == 'custom': # you can have multiple custom task for different techniques
+    #     model = CustomModel(args, batcher, target_size=60).to(device)
+    #     custom_train(args, model, datasets, batcher)
+    #     run_eval(args, model, datasets, batcher, split='test')
 
 
