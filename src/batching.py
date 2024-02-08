@@ -106,6 +106,7 @@ class Batcher:
         edges = [(u.item(), v.item(), w) for u, v ,w in zip(data.edge_index[0],data.edge_index[1], data.edge_attr)]
         G = nx.DiGraph()
         G.add_weighted_edges_from(edges)
+        G.remove_edges_from(nx.selfloop_edges(G))
         return multiple_fm(G, [], k, max_imbalance)
     
     def fm_batch(self, data, k, max_imbalance):

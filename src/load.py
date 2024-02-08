@@ -7,79 +7,94 @@ import os
 from torch_geometric.data import Data
 from scipy.sparse import coo_matrix
 from torch_geometric.utils.convert import from_scipy_sparse_matrix
+from tqdm import tqdm
 
-def load_data(i):
-    if os.path.exists('../cache/data.pt'):
-        # Load data from cache
-        data = torch.load('../cache/data.pt')
-        return data
+def buildBST(array,start=0,finish=-1):
+    if finish<0:
+        finish = len(array)
+    mid = (start + finish) // 2
+    if mid-start==1:
+        ltl=start
     else:
-        with gzip.open(f'../data/xbar/{i}/xbar.json.gz','rb') as f:
-            design = json.loads(f.read().decode('utf-8'))
-            
-        instances = pd.DataFrame(design['instances'])
-        nets = pd.DataFrame(design['nets'])
+        ltl=buildBST(array,start,mid)
 
-        def buildBST(array,start=0,finish=-1):
-            if finish<0:
-                finish = len(array)
-            mid = (start + finish) // 2
-            if mid-start==1:
-                ltl=start
-            else:
-                ltl=buildBST(array,start,mid)
-            
-            if finish-mid==1:
-                gtl=mid
-            else:
-                gtl=buildBST(array,mid,finish)
-                
-            return((array[mid],ltl,gtl))
+    if finish-mid==1:
+        gtl=mid
+    else:
+        gtl=buildBST(array,mid,finish)
 
-        congestion_data = np.load('../data/xbar/1/xbar_congestion.npz')
-        xbst=buildBST(congestion_data['xBoundaryList'])
-        ybst=buildBST(congestion_data['yBoundaryList'])
-        demand = np.zeros(shape = [instances.shape[0],])
+    return((array[mid],ltl,gtl))
 
-        def getGRCIndex(x,y,xbst,ybst):
-            while (type(xbst)==tuple):
-                if x < xbst[0]:
-                    xbst=xbst[1]
-                else:
-                    xbst=xbst[2]
-                    
-            while (type(ybst)==tuple):
-                if y < ybst[0]:
-                    ybst=ybst[1]
-                else:
-                    ybst=ybst[2]
-                    
-            return ybst, xbst
+def getGRCIndex(x,y,xbst,ybst):
+    while (type(xbst)==tuple):
+        if x < xbst[0]:
+            xbst=xbst[1]
+        else:
+            xbst=xbst[2]
+
+    while (type(ybst)==tuple):
+        if y < ybst[0]:
+            ybst=ybst[1]
+        else:
+            ybst=ybst[2]
+
+    return ybst, xbst
+
+def load_data():
+    data_list = []
+    for m in tqdm(range(1,14)):  # Assuming there are 5 files
+        if os.path.exists(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'cache', f'data_{m}.pt')):
+            # Load data from cache
+            data = torch.load(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'cache', f'data_{m}.pt'))
+            data_list.append(data)
+        else:
+
+            print(m)
+            with gzip.open(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'data', 'xbar', str(m), 'xbar.json.gz')) as f:
+                design = json.loads(f.read().decode('utf-8'))
+
+                instances = pd.DataFrame(design['instances'])
+                nets = pd.DataFrame(design['nets'])
+
+            print('Loaded instances and nets')
 
 
-        for k in range(instances.shape[0]):
-            xloc = instances.iloc[k]['xloc']; yloc = instances.iloc[k]['yloc']
-            i,j=getGRCIndex(xloc,yloc,xbst,ybst)
-            d = 0 
-            for l in list(congestion_data['layerList']): 
-                lyr=list(congestion_data['layerList']).index(l)
-                d += congestion_data['demand'][lyr][i][j]
-            demand[k] = d
-                
-        instances['routing_demand'] = demand
+            congestion_data = np.load(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'data', 'xbar', str(m), 'xbar_congestion.npz'))
+            print('Loaded congestion data')
+            xbst=buildBST(congestion_data['xBoundaryList'])
+            ybst=buildBST(congestion_data['yBoundaryList'])
+            demand = np.zeros(shape = [instances.shape[0],])
 
-        conn = np.load(f'../data/xbar/1/xbar_connectivity.npz')
-        A = coo_matrix((conn['data'], (conn['row'], conn['col'])), shape=conn['shape'])
-        A = A.__mul__(A.T)
+            for k in range(instances.shape[0]):
+                xloc = instances.iloc[k]['xloc']; yloc = instances.iloc[k]['yloc']
+                i,j=getGRCIndex(xloc,yloc,xbst,ybst)
+                d = 0 
+                for l in list(congestion_data['layerList']): 
+                    lyr=list(congestion_data['layerList']).index(l)
+                    d += congestion_data['demand'][lyr][i][j]
+                demand[k] = d
 
-        X = torch.tensor(instances[['xloc', 'yloc', 'cell', 'orient']].values) # 4 features
-        y = torch.tensor(instances['routing_demand'].values) # y value
-        edges = from_scipy_sparse_matrix(A)
-        edge_index = edges[0]
-        edge_weights = edges[1]
+            instances['routing_demand'] = demand
 
-        # get all unique nodes in edges
-        data = Data(x=X, edge_index=edge_index, edge_attr=edge_weights, y=y)
-        os.mkdir('../cache')
-        torch.save(data, '../cache/data.pt')
-        return data
+            print('Finished routing demand calculation')
+
+            conn = np.load(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'data', 'xbar', str(m), 'xbar_connectivity.npz'))
+            A = coo_matrix((conn['data'], (conn['row'], conn['col'])), shape=conn['shape'])
+            A = A.__mul__(A.T)
+
+            X = torch.tensor(instances[['xloc', 'yloc', 'cell', 'orient']].values) # 4 features
+            y = torch.tensor(instances['routing_demand'].values) # y value
+            edges = from_scipy_sparse_matrix(A)
+            edge_index = edges[0]
+            edge_weights = edges[1]
+
+            print('Loaded connectivity data')
+
+            # get all unique nodes in edges
+            data = Data(x=X, edge_index=edge_index, edge_attr=edge_weights, y=y)
+            os.makedirs('../cache', exist_ok=True)
+            torch.save(data, f'../cache/data_{m}.pt')
+            data_list.append(data)
+            print('Saved data')
+
+    return data_list
