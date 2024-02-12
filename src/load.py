@@ -40,9 +40,9 @@ def getGRCIndex(x,y,xbst,ybst):
 
     return ybst, xbst
 
-def load_data():
+def load_data(dataset):
     data_list = []
-    for m in tqdm(range(1,14)):  # Assuming there are 5 files
+    for m in tqdm(range(1,4)):  # Assuming there are 5 files
         if os.path.exists(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'cache', f'data_{m}.pt')):
             # Load data from cache
             data = torch.load(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'cache', f'data_{m}.pt'))

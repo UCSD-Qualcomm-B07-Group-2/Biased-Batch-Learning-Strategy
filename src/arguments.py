@@ -15,7 +15,7 @@ def params():
                 help="baseline is fine-tuning bert for classification;\n\
                       tune is advanced techiques to fine-tune bert;\n\
                       constast is contrastive learning method",
-                choices=['cluster', 'random'])
+                choices=['cluster', 'k_clique', 'random'])
     
     parser.add_argument("--output-dir", default='results', type=str,
                 help="Output directory where the model predictions and checkpoints are written.")

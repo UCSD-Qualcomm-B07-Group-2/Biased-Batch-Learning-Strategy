@@ -1,10 +1,12 @@
 from torch_geometric.data import Data
+from torch_geometric.loader import DataLoader
 from torch_geometric.transforms import RandomNodeSplit
 import numpy as np
 import torch
 from partitioning import multiple_fm, KL, mincut_maxflow
 import os
 import networkx as nx
+from torch_geometric.utils import to_networkx, from_networkx
 
 class Batcher:
     """
@@ -25,7 +27,7 @@ class Batcher:
         Creates batches from the given data using the specified method.
     """
 
-    def __init__(self, batch_size=1, method="random", as_graph=False):
+    def __init__(self, args, as_graph=False):
         """
         Constructs all the necessary attributes for the Batcher object.
 
@@ -38,11 +40,12 @@ class Batcher:
             as_graph: bool
                 whether to return the batches as a graph or not
         """
-        self.batch_size = batch_size
-        self.method = method
+        self.args = args
+        self.batch_size = args.batch_size
+        self.method = args.batcher
         self.as_graph = as_graph
     
-    def __call__(self, data):
+    def __call__(self, dataset, G=None):
         """
         Creates batches from the given data using the specified method.
 
@@ -58,30 +61,34 @@ class Batcher:
         """
         if self.as_graph:
             if self.method == "random":
-                return self.random_batch(data, self.batch_size)
-            elif self.method == "fm":
-                return self.fm_partitions(data, self.batch_size, 10)
-            elif self.method=="kl":
-                return self.kl_batch(data, self.batch_size)
-            elif self.method=="mincut":
-                return self.min_cut_batch(data, self.batch_size)
+                return self.random_batch(dataset, self.batch_size)
+            elif self.method == "k_clique":
+                return self.k_cliques_batch(dataset)
+            # elif self.method == "fm":
+            #     return self.fm_partitions(dataset, self.batch_size, 10)
+            # elif self.method=="kl":
+            #     return self.kl_batch(dataset, self.batch_size)
+            # elif self.method=="mincut":
+            #     return self.min_cut_batch(dataset, self.batch_size)
             else:
                 raise ValueError(f"Unknown method {self.method}")
         else:
             if self.method == "random":
-                return self.random_batch(data, self.batch_size)
-            elif self.method == "fm":
-                return self.fm_batch(data, self.batch_size, 10)
-            elif self.method=="kl":
-                return self.kl_batch(data, self.batch_size)
-            elif self.method=="mincut":
-                return self.min_cut_batch(data, self.batch_size)
+                return self.random_batch(dataset, self.batch_size)
+            elif self.method == "k_clique":
+                return self.k_cliques_batch(dataset)
+            # elif self.method == "fm":
+            #     return self.fm_batch(dataset, self.batch_size, 10)
+            # elif self.method=="kl":
+            #     return self.kl_batch(dataset, self.batch_size)
+            # elif self.method=="mincut":
+            #     return self.min_cut_batch(dataset, self.batch_size)
             else:
                 raise ValueError(f"Unknown method {self.method}")
      
     def random_batch(self, data, num_batches):
         """
-        Creates batches from the given data using random node splitting.
+        Creates batches from the given dataset using random node splitting.
 
         This method splits the nodes of the graph randomly into batches. Each batch
         contains approximately the same number of nodes.
@@ -181,3 +188,23 @@ class Batcher:
             partition_y = data.y[list(partition.nodes)]
             partition_edge_index = data.edge_index[:, np.all(edge_mask, axis=0)]
             yield Data(x=partition_x, y=partition_y, edge_index=partition_edge_index)
+
+    def k_cliques_batch(self, datasets):
+            
+            data_list = []
+            for data in datasets:
+                G = to_networkx(data, to_undirected=True)
+                cliques = list(nx.algorithms.community.k_clique_communities(G, self.args.batch_size))
+
+                # Convert cliques to Data objects
+                for clique in cliques:
+                    nodes = list(clique)
+                    subgraph = G.subgraph(nodes)
+                    clique_data = from_networkx(subgraph)
+                    clique_data.x = data.x[nodes]
+                    clique_data.y = data.y[nodes]
+                    data_list.append(clique_data)
+
+            # Create a DataLoader for batching
+            loader = DataLoader(data_list, batch_size=self.batch_size, shuffle=True)    
+            return loader

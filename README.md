@@ -10,9 +10,20 @@ The accompanying paper, "Walking Cluster-GCN", provides a detailed explanation o
 
 The `src` directory contains the Python code for our modified Cluster-GCN. Here's a brief overview of the main files and their purpose:
 
+- `run.sh`: Experiements that can be ran with different configurations
 - `main.py`: The main script that runs the algorithm.
-- `model.py`: Defines the model architecture.
-- `utils.py`: Contains utility functions used by the main script and model.
+- `load.py`: This script includes functions that loads and caches the data.
+- `model.py`: Defines the model architectures
+- `partitioning.py`: Defines the partitioning algorithms we have for our clustering approach.
+- `batching.py`: Creates a generic Batcher class that can help cluster our data via different methods.
+`arguments.py`: Argument flags that are accepted with running main.py
+
+To run:
+
+`sh run.sh`
+or
+`python main.py --task baseline --dataset xbar --learning-rate 0.001 --hidden-dim 10 --drop-rate 0.5 --adam-epsilon 1e-8 --n-epochs 10`
+
 
 ## Installation
 
