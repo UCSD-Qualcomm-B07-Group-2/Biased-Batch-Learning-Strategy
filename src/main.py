@@ -50,7 +50,7 @@ def train_cluster_gcn(args, model, loader):
 
     model.train()
     for epoch in range(args.n_epochs):
-        for batch in loader:
+        for batch in  :
             optimizer.zero_grad()
             out = model(batch)
             loss = criterion(out, batch.y.float())  # Compute loss on the batch
