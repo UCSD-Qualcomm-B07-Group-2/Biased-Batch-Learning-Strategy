@@ -29,10 +29,12 @@ or
 
 To run the code, you'll need to install the required Python packages. You can do this by running the following command:
 
+With pip:
+
 ```bash
 pip install -r requirements.txt
 ```
-With Conda:
+With conda:
 
 ```bash
 conda env create -f environment.yml
