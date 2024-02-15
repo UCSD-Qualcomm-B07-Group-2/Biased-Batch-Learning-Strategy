@@ -32,6 +32,12 @@ To run the code, you'll need to install the required Python packages. You can do
 ```bash
 pip install -r requirements.txt
 ```
+With Conda:
+
+```bash
+conda env create -f environment.yml
+```
+
 The following combinations are supported:
 | Operating System | Supported | GPU Support |
 | ---------------- | --------- | ----------- |
