@@ -4,20 +4,21 @@ This module contains the graph models for our congestion model.
 
 import torch
 from torch_geometric.nn import GCNConv
+import torch.nn.functional as F
 
 class GCN(torch.nn.Module):
-    def __init__(self, args, num_features):
-        super().__init__()
-        self.args = args
-        self.conv1 = GCNConv(num_features, 16)
-        self.conv2 = GCNConv(16, 1)  # Change the output layer to have one output neuron
+    def __init__(self, num_features, hidden_channels, num_layers):
+        super(GCN, self).__init__()
+        self.layers = torch.nn.ModuleList()
+        self.layers.append(GCNConv(num_features, hidden_channels))
+        for _ in range(num_layers - 2):
+            self.layers.append(GCNConv(hidden_channels, hidden_channels))
+        self.layers.append(GCNConv(hidden_channels, 1))
 
-    def forward(self, data):
-        x, edge_index = data.x.float(), data.edge_index
-
-        x = self.conv1(x, edge_index)
-        x = torch.relu(x)
-        x = torch.dropout(x, p=self.args.drop_rate, train=self.training)
-        x = self.conv2(x, edge_index)
-
+    def forward(self, x, edge_index):
+        for i, layer in enumerate(self.layers):
+            x = layer(x, edge_index)
+            if i < len(self.layers) - 1:
+                x = F.relu(x)
+                x = F.dropout(x, training=self.training)
         return x

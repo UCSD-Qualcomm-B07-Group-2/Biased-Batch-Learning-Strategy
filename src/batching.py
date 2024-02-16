@@ -64,6 +64,8 @@ class Batcher:
                 return self.random_batch(dataset, self.batch_size)
             elif self.method == "k_clique":
                 return self.k_cliques_batch(dataset)
+            elif self.method == "cluster_gcn":
+                return self.cluster_gcn_batches(dataset)
             # elif self.method == "fm":
             #     return self.fm_partitions(dataset, self.batch_size, 10)
             # elif self.method=="kl":
@@ -77,6 +79,8 @@ class Batcher:
                 return self.random_batch(dataset, self.batch_size)
             elif self.method == "k_clique":
                 return self.k_cliques_batch(dataset)
+            elif self.method == "cluster_gcn":
+                return self.cluster_gcn_batches(dataset)
             # elif self.method == "fm":
             #     return self.fm_batch(dataset, self.batch_size, 10)
             # elif self.method=="kl":
@@ -193,6 +197,8 @@ class Batcher:
             
             data_list = []
             for data in datasets:
+                data.x = data.x.float()
+                data.y = data.y.float()
                 G = to_networkx(data, to_undirected=True)
                 cliques = list(nx.algorithms.community.k_clique_communities(G, self.args.batch_size))
 
@@ -208,3 +214,21 @@ class Batcher:
             # Create a DataLoader for batching
             loader = DataLoader(data_list, batch_size=self.batch_size, shuffle=True)    
             return loader
+    def cluster_gcn_batches(self, dataset):
+        from torch_geometric.loader import ClusterData, ClusterLoader
+        from torch_geometric.data import Batch
+
+        train_dataset = dataset[:2]
+        val_dataset = dataset[2:3]
+        test_dataset = dataset[3]
+
+        train_data = Batch.from_data_list(train_dataset)
+        
+        train_data.x = train_data.x.float()
+        train_data.y = train_data.y.float()
+
+        cluster_data = ClusterData(train_data, num_parts=50, recursive=False)
+        train_loader = ClusterLoader(cluster_data, batch_size=3, shuffle=True)        
+        for data in train_loader:
+            print(data)
+        return train_loader
