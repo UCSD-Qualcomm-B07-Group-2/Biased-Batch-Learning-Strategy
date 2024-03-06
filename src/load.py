@@ -101,7 +101,7 @@ def load_data():
             instances['degree'] = degree
             instances['demand'] = demand
             instances['capacity'] = capacity
-            instances['overflow'] = instances['demand'] - instances['capacity']
+            instances['overflow'] = instances['demand']
 
             encoder = OneHotEncoder()
             instances_encoded = pd.DataFrame(encoder.fit_transform(instances[['cell', 'orient']]).toarray())
@@ -110,12 +110,12 @@ def load_data():
             one_hot_feature_columns = list(range(17))  # Assuming these are the indices of your one-hot encoded features
             original_feature_columns = [
                 'betweenness', 'clustering_coeff', 'pagerank', 'eigenvector_centrality',
-                'degree'
+                'degree', 'xloc', 'yloc', 'cell', 'orient'
             ]
             feature_columns = original_feature_columns + one_hot_feature_columns
 
             X = torch.tensor(instances[feature_columns].values) # 4 features
-            y = torch.tensor(instances['overflow'].values) # y value
+            y = torch.tensor(instances['demand'].values) # y value
             edges = from_scipy_sparse_matrix(A)
             edge_index = edges[0]
             edge_weights = edges[1]
@@ -131,7 +131,6 @@ def load_data():
             print('Saved data')
 
     return data_list
-
 
 def load_cache(args=None):
     # Construct the file path
