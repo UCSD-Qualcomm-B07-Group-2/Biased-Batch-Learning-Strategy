@@ -11,7 +11,7 @@ def params():
                       constast is contrastive learning method",
                 choices=['baseline','cluster'])
 
-    parser.add_argument("--batcher", default="cluster", type=str,\
+    parser.add_argument("--batcher", default="cluster_gcn", type=str,\
                 help="baseline is fine-tuning bert for classification;\n\
                       tune is advanced techiques to fine-tune bert;\n\
                       constast is contrastive learning method",

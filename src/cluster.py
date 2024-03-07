@@ -77,6 +77,7 @@ def create_graph_and_clusters(data, num_parts):
 
     cluster_data = list(ClusterData(data, num_parts))
 
+    # gets the original edge index based off the results of ClusterData using the node_perm
     for i, cd in enumerate(cluster_data):
         mapped = cd.edge_index + partptr[i]
         mapped = node_perm[mapped]
@@ -84,6 +85,7 @@ def create_graph_and_clusters(data, num_parts):
         cd.between_edges = {}
         cluster_data[i] = cd
 
+    # adds edges and weights to the supergraph
     original_indices = torch.argsort(node_perm)
     for source_node, target_node in data.edge_index.t().tolist():
         source_cluster = nodes_to_clusters[source_node]
@@ -122,7 +124,7 @@ def sample_groups(G, q, method="random"):
             group = nodes
         else:
             if method == "rw":
-                group = random_walk(nodes, q)
+                group = random_walk(G, nodes, q)
             elif method == "wrw":
                 group = weighted_random_walk(G, nodes, q)
             else:
@@ -131,7 +133,7 @@ def sample_groups(G, q, method="random"):
         groups.append(group)
     return groups
 
-def random_walk(nodes, q):
+def random_walk(G, nodes, q):
     # Start at a random node
     node = np.random.choice(list(nodes))
     subgraph = G.subgraph(nodes)
@@ -175,10 +177,8 @@ def create_batch(clusters, cluster_ids):
     edge_index = []
     x = []
     y = []
-    between_edges = []
     new_partptr = [cluster[1].x.shape[0] for cluster in clusters]
     new_partptr = np.insert(np.cumsum(new_partptr), 0, 0)
-    prev_cluster_id = None
     cluster_id_to_id = dict(zip(cluster_ids, range(len(cluster_ids))))
 
     for i, cluster in enumerate(clusters):
@@ -187,9 +187,9 @@ def create_batch(clusters, cluster_ids):
         # building combined edge_index
         edge_index.append(data.edge_index + new_partptr[i])
         # building combined x data
-        x.append(data.x)
+        x.append(data.x.float())
         # building combined y data
-        y.append(data.y)
+        y.append(data.y.float())
         
         # building combined between_edges
         for target_cluster_id, edges in data.between_edges.items():
