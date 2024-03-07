@@ -39,14 +39,28 @@ def params():
                 help="Batch size per GPU/CPU for training and evaluation.")
     parser.add_argument("--learning-rate", default=3, type=float,
                 help="Model learning rate starting point.")
-    parser.add_argument("--hidden-dim", default=10, type=int,
-                help="Model hidden dimension.")
-    parser.add_argument("--drop-rate", default=0.9, type=float,
-                help="Dropout rate for model training")
     parser.add_argument("--adam-epsilon", default=1e-8, type=float,
                 help="Epsilon for Adam optimizer.")
     parser.add_argument("--n-epochs", default=1, type=int,
                 help="Total number of training epochs to perform.")
+
+    # Arguments from AdvancedGCNRegression
+    parser.add_argument("--num-node-features", type=int, required=True,
+                        help="Number of node features")
+    parser.add_argument("--num-edge-features", type=int, required=True,
+                        help="Number of edge features")
+    parser.add_argument("--conv1-out-features", default=16, type=int,
+                        help="Number of output features for the first GCN convolution layer")
+    parser.add_argument("--conv2-out-features", default=32, type=int,
+                        help="Number of output features for the second GCN convolution layer")
+    parser.add_argument("--conv3-out-features", default=32, type=int,
+                        help="Number of output features for the third GCN convolution layer")
+    parser.add_argument("--gat-out-features", default=32, type=int,
+                        help="Number of output features for the GAT convolution layer")
+    parser.add_argument("--gat-heads", default=4, type=int,
+                        help="Number of heads for the GAT convolution layer")
+    parser.add_argument("--dropout-rate", default=0.7, type=float,
+                        help="Dropout rate for the model")
 
     args = parser.parse_args()
     return args
