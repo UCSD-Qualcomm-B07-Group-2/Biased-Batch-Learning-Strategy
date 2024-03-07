@@ -16,7 +16,7 @@ import numpy as np
 
 device = 'cpu'
 
-def train_gcn(args, model, data):
+def train_gcn(args, model, dataset):
     optimizer = Adam(model.parameters(), lr=0.001)
     criterion = MSELoss()  # Change the loss function to MSE
 
@@ -25,11 +25,13 @@ def train_gcn(args, model, data):
 
     model.train()
     for epoch in range(2000):
-        optimizer.zero_grad()
-        out = model(data.x, data.edge_index)
-        loss = criterion(out.reshape(-1), data.y)
-        loss.backward()
-        optimizer.step()
+        for data in dataset:
+            optimizer.zero_grad()
+            out = model(data.x, data.edge_index)
+            loss = criterion(out.reshape(-1), data.y)
+            loss.backward()
+            optimizer.step()
+        
         if epoch % 100 == 0:
             print(f"Epoch {epoch} Model Loss: {loss.item()}")
 
@@ -72,7 +74,10 @@ def train_cluster_gcn(args, model, batchers_train, batchers_val):
 
 
 
-def run_eval(args, model, data, split="train"):
+def run_eval(args, model, dataset, split="val"):
+    '''
+    Should return the loss
+    '''
     pass
 
 
