@@ -72,8 +72,16 @@ if __name__ == '__main__':
         model = GCN(22, 16, 4)
         print('Model initialized')
         batcher = Batcher(args)
-        batcher = batcher(dataset)
+        batcher = batcher(dataset[0])
+
+        # HOW TO CALL DIFFERENT TYPE OF BATCHING
+        # print(batcher.create_random_batches())
+        # print(batcher.create_random_walk_batches())
+        # print(batcher.create_weighted_random_walk_batches())
+
         print('Data loader initialized')
+
+        # SRUJAN OR WHOEVER REPLACE THIS WITH YOUR MODEL TRAINING. MAKE SURE TO TAKE IN TRAINING ARGS AND BATCHER
         train_cluster_gcn(args, model, batcher)
         # run_eval(args, model, dataset, split='test')
 

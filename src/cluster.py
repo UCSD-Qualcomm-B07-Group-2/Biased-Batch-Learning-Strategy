@@ -24,19 +24,12 @@ import torch_geometric.typing
 
 import matplotlib.pyplot as plt
 
-sparse_format = 'csr'
-num_parts = 50
-batch_size = 3
 
-def metis(edge_index: Tensor, num_nodes: int) -> Tensor:
+def metis(edge_index: Tensor, num_nodes: int, num_parts: int) -> Tensor:
         # Computes a node-level partition assignment vector via METIS.
-        if sparse_format == 'csr':  # Calculate CSR representation:
-            row, index = sort_edge_index(edge_index, num_nodes=num_nodes)
-            indptr = index2ptr(row, size=num_nodes)
-        else:  # Calculate CSC representation:
-            index, col = sort_edge_index(edge_index, num_nodes=num_nodes,
-                                         sort_by_row=False)
-            indptr = index2ptr(col, size=num_nodes)
+        row, index = sort_edge_index(edge_index, num_nodes=num_nodes)
+        indptr = index2ptr(row, size=num_nodes)
+
 
         # Compute METIS partitioning:
         cluster: Optional[Tensor] = None
@@ -67,14 +60,14 @@ def metis(edge_index: Tensor, num_nodes: int) -> Tensor:
 
         return cluster
 
-def create_graph_and_clusters(data):
+def create_graph_and_clusters(data, num_parts):
 
     G = nx.Graph()
 
     for i in range(num_parts):
         G.add_node(i)
 
-    cluster = metis(data.edge_index, data.x.shape[0])
+    cluster = metis(data.edge_index, data.x.shape[0], 50)
     cluster_new, node_perm = index_sort(cluster, max_value=num_parts)
     partptr = index2ptr(cluster_new, size=num_parts)
 
@@ -82,7 +75,7 @@ def create_graph_and_clusters(data):
     for node_id, cluster_id in enumerate(cluster.tolist()):
         nodes_to_clusters[node_id] = cluster_id
 
-    cluster_data = list(ClusterData(d, num_parts))
+    cluster_data = list(ClusterData(data, num_parts))
 
     for i, cd in enumerate(cluster_data):
         mapped = cd.edge_index + partptr[i]
@@ -92,7 +85,7 @@ def create_graph_and_clusters(data):
         cluster_data[i] = cd
 
     original_indices = torch.argsort(node_perm)
-    for source_node, target_node in d.edge_index.t().tolist():
+    for source_node, target_node in data.edge_index.t().tolist():
         source_cluster = nodes_to_clusters[source_node]
         target_cluster = nodes_to_clusters[target_node]
         if source_cluster != target_cluster:
@@ -119,7 +112,7 @@ def create_graph_and_clusters(data):
                 # If the edge does not exist, add it with an initial weight
                 G.add_edge(source_cluster, target_cluster, weight=1)
 
-    return G, cluster_data, node_perm, partptr
+    return G, cluster_data, node_perm
 
 def sample_groups(G, q, method="random"):
     nodes = list(G.nodes())
@@ -177,7 +170,7 @@ def weighted_random_walk(G, nodes, q):
 
     return walk
 
-def create_batch(clusters, partptr, cluster_ids):
+def create_batch(clusters, cluster_ids):
     batch = None
     edge_index = []
     x = []
@@ -201,7 +194,6 @@ def create_batch(clusters, partptr, cluster_ids):
         # building combined between_edges
         for target_cluster_id, edges in data.between_edges.items():
             if target_cluster_id in cluster_ids:
-                print(cluster_id, target_cluster_id)
                 edges[0] += new_partptr[cluster_id_to_id[cluster_id]]    
                 edges[1] += new_partptr[cluster_id_to_id[target_cluster_id]] 
                 edge_index.append(edges)
@@ -210,32 +202,33 @@ def create_batch(clusters, partptr, cluster_ids):
 
     return Data(x=torch.cat(x, dim=0), y=torch.cat(y, dim=0), edge_index=torch.cat(edge_index, dim=1))
 
-def create_batches(groups, cluster_data, partptr):
+def create_batches(groups, cluster_data):
     batches = []
     for group in groups:
         clusters = []
         for cluster_id in sorted(group):
             clusters.append  ((cluster_id, cluster_data[cluster_id]))
-        batch = create_batch(clusters, partptr, sorted(group))
+        batch = create_batch(clusters, sorted(group))
         batches.append(batch)
         # batches.append(batch)
     
     return batches
 
 
-np.random.seed(42)
+def example():
+    np.random.seed(42)
 
-# load in data
-data = load_cache()
-d = data[0]
+    # load in data
+    data = load_cache()
+    d = data[0]
 
-# this creates clusters
-G, clusters, node_perm, partptr = create_graph_and_clusters(d)
+    # this creates clusters
+    G, clusters, node_perm = create_graph_and_clusters(d, 50)
 
-# this will perform weighted random walk and create the cluster groups
-groups = sample_groups(G, 3, method="wrw")
+    # this will perform weighted random walk and create the cluster groups
+    groups = sample_groups(G, 3, method="wrw")
 
-# given the groups this will batch them
-batches = create_batches(groups, clusters, partptr)
+    # given the groups this will batch them
+    batches = create_batches(groups, clusters)
 
-print(batches)
+    return batches

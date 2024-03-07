@@ -7,6 +7,7 @@ from partitioning import multiple_fm, KL, mincut_maxflow
 import os
 import networkx as nx
 from torch_geometric.utils import to_networkx, from_networkx
+from cluster import create_graph_and_clusters, create_batches, sample_groups
 
 class Batcher:
     """
@@ -44,6 +45,7 @@ class Batcher:
         self.batch_size = args.batch_size
         self.method = args.batcher
         self.as_graph = as_graph
+
     
     def __call__(self, dataset, G=None):
         """
@@ -65,7 +67,8 @@ class Batcher:
             elif self.method == "k_clique":
                 return self.k_cliques_batch(dataset)
             elif self.method == "cluster_gcn":
-                return self.cluster_gcn_batches(dataset)
+                self.cluster_gcn_batches(dataset)
+                return self
             # elif self.method == "fm":
             #     return self.fm_partitions(dataset, self.batch_size, 10)
             # elif self.method=="kl":
@@ -80,7 +83,8 @@ class Batcher:
             elif self.method == "k_clique":
                 return self.k_cliques_batch(dataset)
             elif self.method == "cluster_gcn":
-                return self.cluster_gcn_batches(dataset)
+                self.cluster_gcn_batches(dataset)
+                return self
             # elif self.method == "fm":
             #     return self.fm_batch(dataset, self.batch_size, 10)
             # elif self.method=="kl":
@@ -215,20 +219,28 @@ class Batcher:
             loader = DataLoader(data_list, batch_size=self.batch_size, shuffle=True)    
             return loader
     def cluster_gcn_batches(self, dataset):
-        from torch_geometric.loader import ClusterData, ClusterLoader
-        from torch_geometric.data import Batch
 
-        train_dataset = dataset[:2]
-        val_dataset = dataset[2:3]
-        test_dataset = dataset[3]
+        self.graph, self.clusters, self.node_perm = create_graph_and_clusters(dataset, 50)
 
-        train_data = Batch.from_data_list(train_dataset)
-        
-        train_data.x = train_data.x.float()
-        train_data.y = train_data.y.float()
-
-        cluster_data = ClusterData(train_data, num_parts=50, recursive=False)
-        train_loader = ClusterLoader(cluster_data, batch_size=3, shuffle=True)        
-        for data in train_loader:
-            print(data)
-        return train_loader
+        return True
+    
+    def create_random_batches(self):
+        # samples the groups of clusters that will turn into batches
+        groups = sample_groups(self.graph, self.batch_size, method="random")
+        # given the groups this will batch them
+        batches = create_batches(groups, self.clusters)
+        return batches
+    
+    def create_random_walk_batches(self):
+        # samples the groups of clusters that will turn into batches
+        groups = sample_groups(self.graph, self.batch_size, method="rw")
+        # given the groups this will batch them
+        batches = create_batches(groups, self.clusters)
+        return batches
+    
+    def create_weighted_random_walk_batches(self):
+        # samples the groups of clusters that will turn into batches
+        groups = sample_groups(self.graph, self.batch_size, method="wrw")
+        # given the groups this will batch them
+        batches = create_batches(groups, self.clusters)
+        return batches
