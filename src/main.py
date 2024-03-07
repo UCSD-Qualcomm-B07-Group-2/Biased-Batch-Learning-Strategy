@@ -46,39 +46,29 @@ def train_cluster_gcn(args, model, batchers_train, batchers_val):
 
         model.train()
         for batcher in batchers_train:
-            loader = batcher.create_weighted_random_walk_batches()
+            loader = batcher.create_random_batches()
             for i, batch in enumerate(loader):
-                try:
-                    optimizer.zero_grad()
-                    out = model(batch.x, batch.edge_index)
-                    loss =  F.mse_loss(out.reshape(-1), batch.y)  # Compute loss on the batch
-                    train_loss.append(loss.item())
-                    loss.backward()
-                    optimizer.step()
-                except:
-                    torch.save(batch.edge_index, 'stupid_batch.pt')
-                    print(i, batch.edge_index, batch.edge_index.max(), batch.x.shape[0])
-                    return
+                optimizer.zero_grad()
+                out = model(batch.x, batch.edge_index)
+                loss =  F.mse_loss(out.reshape(-1), batch.y)  # Compute loss on the batch
+                train_loss.append(loss.item())
+                loss.backward()
+                optimizer.step()
         
-        # model.eval()
-        # with no_grad():
-        #     for batcher in batchers_val:
-        #         loader = batcher.create_weighted_random_walk_batches()
-        #         for batch in loader:
-        #             # print(batch.edge_index.max())
-        #             try:
-        #                 out = model(batch.x, batch.edge_index)
-        #                 loss =  F.mse_loss(out.reshape(-1), batch.y.float())  # Compute loss on the batch
-        #                 # print(out.shape[0], batch.y.shape[0], loss.item())
-        #                 val_loss.append(loss.item())
-        #             except:
-        #                 print(f'Epoch {epoch}', 'batch failed')
-        #                 continue
+        model.eval()
+        with no_grad():
+            for batcher in batchers_val:
+                loader = batcher.create_random_batches()
+                for batch in loader:
+                    # print(batch.edge_index.max())
+                    out = model(batch.x, batch.edge_index)
+                    loss =  F.mse_loss(out.reshape(-1), batch.y.float())  # Compute loss on the batch
+                    # print(out.shape[0], batch.y.shape[0], loss.item())
+                    val_loss.append(loss.item())
 
 
-        # if epoch % 100 == 0:
-        #     print(val_loss)
-        #     print(f"Epoch {epoch} Train Loss: {np.mean(train_loss)} Validation Loss: {sum(val_loss) / len(val_loss)}")
+        if epoch % 100 == 0:
+            print(f"Epoch {epoch} Train Loss: {np.mean(train_loss)} Validation Loss: {np.mean(val_loss)}")
 
 
 
@@ -110,7 +100,7 @@ if __name__ == '__main__':
     model = AdvancedGCNRegression(26, 0)
     print('Model initialized')
     batchers_train = [Batcher(args)(d) for d in train]
-    # batchers_val = [Batcher(args)(d) for d in val]
+    batchers_val = [Batcher(args)(d) for d in val]
     # batchers_test = [Batcher(args)(d) for d in test]
 
     # HOW TO CALL DIFFERENT TYPE OF BATCHING
@@ -120,10 +110,8 @@ if __name__ == '__main__':
 
     print('Data loader initialized')
 
-    np.random.seed(42)
-
     # SRUJAN OR WHOEVER REPLACE THIS WITH YOUR MODEL TRAINING. MAKE SURE TO TAKE IN TRAINING ARGS AND BATCHER
-    train_cluster_gcn(args, model, batchers_train, None)
+    train_cluster_gcn(args, model, batchers_train, batchers_val)
     # run_eval(args, model, dataset, split='test')
 
 

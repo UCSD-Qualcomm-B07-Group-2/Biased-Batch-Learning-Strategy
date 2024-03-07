@@ -194,9 +194,10 @@ def create_batch(clusters, cluster_ids):
         # building combined between_edges
         for target_cluster_id, edges in data.between_edges.items():
             if target_cluster_id in cluster_ids:
-                edges[0] += new_partptr[cluster_id_to_id[cluster_id]]    
-                edges[1] += new_partptr[cluster_id_to_id[target_cluster_id]] 
-                edge_index.append(edges)
+                edges_copy = torch.clone(edges)
+                edges_copy[0] += new_partptr[cluster_id_to_id[cluster_id]]    
+                edges_copy[1] += new_partptr[cluster_id_to_id[target_cluster_id]] 
+                edge_index.append(edges_copy)
     
         
 
