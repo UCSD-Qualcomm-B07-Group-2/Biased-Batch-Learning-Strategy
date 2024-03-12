@@ -24,6 +24,7 @@ import torch_geometric.typing
 
 import matplotlib.pyplot as plt
 
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 def metis(edge_index: Tensor, num_nodes: int, num_parts: int) -> Tensor:
         # Computes a node-level partition assignment vector via METIS.
@@ -42,7 +43,7 @@ def metis(edge_index: Tensor, num_nodes: int, num_parts: int) -> Tensor:
                     None,
                     num_parts,
                     False,
-                ).to(edge_index.device)
+                ).to(device)
             except (AttributeError, RuntimeError):
                 pass
 
@@ -52,7 +53,7 @@ def metis(edge_index: Tensor, num_nodes: int, num_parts: int) -> Tensor:
                 index.cpu(),
                 num_parts,
                 recursive=False,
-            ).to(edge_index.device)
+            ).to(device)
 
         if cluster is None:
             raise ImportError(f"requires either "
@@ -172,8 +173,8 @@ def weighted_random_walk(G, nodes, q):
 
     return walk
 
+
 def create_batch(clusters, cluster_ids):
-    batch = None
     edge_index = []
     x = []
     y = []
@@ -184,24 +185,27 @@ def create_batch(clusters, cluster_ids):
     for i, cluster in enumerate(clusters):
         cluster_id, data = cluster
 
-        # building combined edge_index
+        # Ensure tensors are moved to the device
+        data.x = data.x.to(device)
+        data.y = data.y.to(device)
+        data.edge_index = data.edge_index.to(device)
+
+        # Building combined edge_index
         edge_index.append(data.edge_index + new_partptr[i])
-        # building combined x data
+        # Building combined x data
         x.append(data.x.float())
-        # building combined y data
+        # Building combined y data
         y.append(data.y.float())
-        
-        # building combined between_edges
+
+        # Building combined between_edges
         for target_cluster_id, edges in data.between_edges.items():
             if target_cluster_id in cluster_ids:
-                edges_copy = torch.clone(edges)
-                edges_copy[0] += new_partptr[cluster_id_to_id[cluster_id]]    
-                edges_copy[1] += new_partptr[cluster_id_to_id[target_cluster_id]] 
+                edges_copy = torch.clone(edges).to(device)
+                edges_copy[0] += new_partptr[cluster_id_to_id[cluster_id]]
+                edges_copy[1] += new_partptr[cluster_id_to_id[target_cluster_id]]
                 edge_index.append(edges_copy)
-    
-        
 
-    return Data(x=torch.cat(x, dim=0), y=torch.cat(y, dim=0), edge_index=torch.cat(edge_index, dim=1))
+    return Data(x=torch.cat(x, dim=0), y=torch.cat(y, dim=0), edge_index=torch.cat(edge_index, dim=1)).to(device)
 
 def create_batches(groups, cluster_data):
     batches = []

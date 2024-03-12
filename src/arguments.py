@@ -35,19 +35,19 @@ def params():
                 help="Whether to run eval on the dev set.")
     
     # Hyper-parameters for tuning
-    parser.add_argument("--batch-size", default=1, type=int,
+    parser.add_argument("--batch-size", default=20, type=int,
                 help="Batch size per GPU/CPU for training and evaluation.")
-    parser.add_argument("--learning-rate", default=3, type=float,
+    parser.add_argument("--learning-rate", default=0.01, type=float,
                 help="Model learning rate starting point.")
     parser.add_argument("--adam-epsilon", default=1e-8, type=float,
                 help="Epsilon for Adam optimizer.")
-    parser.add_argument("--n-epochs", default=1, type=int,
+    parser.add_argument("--n-epochs", default=200, type=int,
                 help="Total number of training epochs to perform.")
 
     # Arguments from AdvancedGCNRegression
-    parser.add_argument("--num-node-features", type=int, required=True,
+    parser.add_argument("--num-node-features", type=int,
                         help="Number of node features")
-    parser.add_argument("--num-edge-features", type=int, required=True,
+    parser.add_argument("--num-edge-features", type=int,
                         help="Number of edge features")
     parser.add_argument("--conv1-out-features", default=16, type=int,
                         help="Number of output features for the first GCN convolution layer")

@@ -9,6 +9,7 @@ from torch_geometric.utils import from_scipy_sparse_matrix
 import torch.nn.functional as F
 from sklearn.preprocessing import OneHotEncoder
 from scipy.sparse import hstack
+from torch_geometric.data import Batch
 
 def inductive_split(data_list, train_prop, val_prop, test_prop, features):
     # Calculate the number of samples for each split
@@ -105,9 +106,9 @@ def get_cells(circuit):
     cells = pd.DataFrame(cells_json).drop(columns=['name'])
     return cells
 
-cells = get_cells('xbar')
-cell_ohe = OneHotEncoder(drop='first')
-cell_ohe.fit(cells[['id']])
+# cells = get_cells('xbar')
+# cell_ohe = OneHotEncoder(drop='first')
+# cell_ohe.fit(cells[['id']])
 
 def create_data_object(A, df):
     
@@ -148,3 +149,18 @@ def create_data_object(A, df):
     edge_index = ei[0].to(dtype=torch.long) 
     data = Data(x=X, edge_index=edge_index, y=y)
     return data
+
+def merge_datasets(datasets):
+    # This function will merge a list of datasets into a single dataset
+    merged_data_list = []
+    for data in datasets:
+        merged_data_list.append(data)
+    return Batch.from_data_list(merged_data_list)
+
+def test(model, data):
+    model.eval()
+    with torch.no_grad():
+        predictions = model(data.x, data.edge_index)
+        mse_loss = torch.nn.MSELoss()
+        loss = mse_loss(predictions.squeeze(), data.y.float())
+    return loss.item()  # Return the loss value

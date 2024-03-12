@@ -11,6 +11,9 @@ from tqdm import tqdm
 import networkx as nx
 from sklearn.preprocessing import OneHotEncoder
 
+
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
 def buildBST(array,start=0,finish=-1):
     if finish<0:
         finish = len(array)
@@ -149,3 +152,60 @@ def load_cache(args=None):
             datasets.append(data)
 
     return datasets
+
+
+def load_and_prepare_data(design_path, conn_path, congestion_path):
+    # Load design data
+    with gzip.open(design_path, 'rb') as f:
+        design = json.loads(f.read().decode('utf-8'))
+
+    # Load connectivity data
+    conn = np.load(conn_path, allow_pickle=True)
+    A = coo_matrix((conn['data'], (conn['row'], conn['col'])), shape=conn['shape'])
+    A = A.__mul__(A.T)
+
+    # Load congestion data
+    congestion_data = np.load(congestion_path, allow_pickle=True)
+
+    instances = pd.DataFrame(design['instances'])
+
+    # Pre-compute and vectorize demand and capacity calculations
+    xbst = buildBST(congestion_data['xBoundaryList'])
+    ybst = buildBST(congestion_data['yBoundaryList'])
+
+    def compute_demand_capacity(row):
+        i, j = getGRCIndex(row['xloc'], row['yloc'], xbst, ybst)
+        demand = sum(congestion_data['demand'][lyr][i][j] for lyr in range(len(congestion_data['layerList'])))
+        capacity = sum(congestion_data['capacity'][lyr][i][j] for lyr in range(len(congestion_data['layerList'])))
+        return demand, capacity
+
+    # Apply the function along rows
+    instances[['routing_demand', 'capacity']] = instances.apply(compute_demand_capacity, axis=1, result_type='expand')
+
+    # Prepare node features and labels for PyTorch Geometric
+    X = torch.tensor(instances[['capacity', 'xloc', 'yloc']].values, dtype=torch.float).to(device)
+    y = torch.tensor(instances['routing_demand'].values, dtype=torch.float).to(device)
+    edge_index = from_scipy_sparse_matrix(A)[0].to(device)
+
+    return Data(x=X, edge_index=edge_index, y=y).to(device)
+
+def load_all_data():
+    all_datasets = []
+    for i in tqdm(range(1, 14)):
+        design_path = f'xbar/{i}/xbar.json.gz'
+        conn_path = f'xbar/{i}/xbar_connectivity.npz'
+        congestion_path = f'xbar/{i}/xbar_congestion.npz'
+        graph_data = load_and_prepare_data(design_path, conn_path, congestion_path)
+        all_datasets.append(graph_data)
+    return all_datasets
+
+def load_cache_v2():
+    loaded_datasets = []
+    save_dir = "saved_datasets"
+    # Load each dataset
+    for i in range(13):
+        file_path = os.path.join(save_dir, f'data{i}.pth')
+        dataset = torch.load(file_path, map_location=device)
+        loaded_datasets.append(dataset)
+    print(device)
+    return loaded_datasets
