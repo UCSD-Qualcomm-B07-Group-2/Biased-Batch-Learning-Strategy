@@ -153,23 +153,24 @@ def random_walk(G, nodes, q):
 
 def weighted_random_walk(G, nodes, q):
     # Start at a random node
-    node = np.random.choice(list(nodes))
+    start_node = np.random.choice(list(nodes))
     subgraph = G.subgraph(nodes)
-    walk = [node]
+    walk = [start_node]
 
-    # Perform the weighted random walk
-    for _ in range(q - 1):
-        neighbors = [n for n in subgraph.neighbors(node) if n not in walk]
-        if neighbors:
-            # Get the weights of the edges to the neighbors
-            weights = [subgraph[node][n]['weight'] for n in neighbors]
-            # Normalize the weights
-            weights = [w / sum(weights) for w in weights]
-            # Choose a neighbor based on the weights
-            node = np.random.choice(neighbors, p=weights)
-            walk.append(node)
-        else:
-            break
+    while len(walk) < q:
+        current_node = walk[-1]
+        neighbors = [n for n in subgraph.neighbors(current_node) if n not in walk]
+
+        if not neighbors:
+            break  # Break if there are no more neighbors to explore
+
+        # Incorporate node importance (e.g., degree centrality)
+        neighbor_degrees = np.array([subgraph.degree(n) for n in neighbors])
+        weights = neighbor_degrees / neighbor_degrees.sum()  # Normalize the weights
+
+        # Choose the next node based on weighted degree centrality
+        next_node = np.random.choice(neighbors, p=weights)
+        walk.append(next_node)
 
     return walk
 

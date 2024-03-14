@@ -10,7 +10,7 @@ import torch.nn.functional as F
 from sklearn.preprocessing import OneHotEncoder
 from scipy.sparse import hstack
 from torch_geometric.data import Batch
-
+import random
 def inductive_split(data_list, train_prop, val_prop, test_prop, features):
     # Calculate the number of samples for each split
     total_samples = len(data_list)
@@ -163,4 +163,12 @@ def test(model, data):
         predictions = model(data.x, data.edge_index)
         mse_loss = torch.nn.MSELoss()
         loss = mse_loss(predictions.squeeze(), data.y.float())
-    return loss.item()  # Return the loss value
+    return loss.item(), predictions
+
+def set_seed(seed):
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    np.random.seed(seed)
+    random.seed(seed)
+    torch.backends.cudnn.benchmark = False
+    torch.backends.cudnn.deterministic = True

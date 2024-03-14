@@ -20,5 +20,5 @@
 # --n-epochs: The total number of training epochs to perform.
 
 # Run main.py with different combinations of arguments
-python main.py --task baseline --model-output-dir baseline
+python main.py --task cluster --model-output-dir random-batch --batching-types weighted-random-walk
 # python main.py --task baseline --batcher k_clique --dataset xbar --batch-size 32 --learning-rate 0.00001 --drop-rate 0.1 --n-epochs 1000

@@ -16,7 +16,11 @@ def params():
                       tune is advanced techiques to fine-tune bert;\n\
                       constast is contrastive learning method",
                 choices=['cluster_gcn', 'k_clique', 'random'])
-    
+    parser.add_argument("--model-output-dir", default='saved', type=str,
+                        help="Output directory where the models are stored.")
+    parser.add_argument("--batching-types", default='random', type=str,
+                        help="Output directory where the models are stored.",
+                choices=['random', 'random-walk', 'weighted-random-walk'])
     parser.add_argument("--output-dir", default='results', type=str,
                 help="Output directory where the model predictions and checkpoints are written.")
     parser.add_argument("--model", default='gcn', type=str,

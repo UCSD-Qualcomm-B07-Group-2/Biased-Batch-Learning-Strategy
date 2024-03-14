@@ -17,10 +17,13 @@ from tqdm import tqdm
 import tracemalloc
 import time
 from sklearn.metrics import mean_squared_error, r2_score
-
+import random
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-def train_gcn(args, model, data, optimizer_choice='adam', lr=0.01, epochs=200):
+
+
+def train_gcn(args, model, train_data, val_data, optimizer_choice='sgd', lr=0.01, epochs=200, patience=40):
     criterion = torch.nn.MSELoss()
+    optimizer = None
     if optimizer_choice == 'adam':
         optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=5e-4)
     elif optimizer_choice == 'sgd':
@@ -30,37 +33,50 @@ def train_gcn(args, model, data, optimizer_choice='adam', lr=0.01, epochs=200):
     else:
         raise ValueError("Unsupported optimizer")
 
+    best_val_loss = float('inf')
+    patience_counter = 0
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=50, gamma=0.5)
-    model.train()
-    for epoch in tqdm(range(args.n_epochs)):
+    for epoch in tqdm(range(epochs)):
+        model.train()
         total_loss = 0
-        for train_data in data:
+        for batch in train_data:
             optimizer.zero_grad()
-            # Unpack the batch data
-            x, edge_index, batch = train_data.x, train_data.edge_index, train_data.batch
-            # If the model expects edge attributes, include them as well
-            edge_attr = train_data.edge_attr if 'edge_attr' in train_data else None
-
-            # Adjust the model's forward call according to its expected input
-            if edge_attr is not None:
-                pred = model(x, edge_index, edge_attr, batch).to(device)
-            else:
-                pred = model(x, edge_index, batch).to(device)
-
-            loss = criterion(pred.squeeze(), train_data.y.to(device).float())
+            x, edge_index, batch_idx = batch.x, batch.edge_index, batch.batch
+            pred = model(x.to(device), edge_index.to(device), batch_idx.to(device))
+            loss = criterion(pred.squeeze(), batch.y.to(device).float())
             loss.backward()
             optimizer.step()
-            scheduler.step()
-
             total_loss += loss.item()
-        average_loss = total_loss / len(data)
+        average_loss = total_loss / len(train_data)
+
+        model.eval()
+        with torch.no_grad():
+            x, edge_index = val_data.x, val_data.edge_index
+            pred = model(x.to(device), edge_index.to(device))
+            val_loss = criterion(pred.squeeze(), val_data.y.to(device).float()).item()
+        if epoch % 10 == 0:
+            print(f"Epoch {epoch}: Train Loss: {average_loss}, Validation Loss: {val_loss}")
+
+        if val_loss < best_val_loss:
+            best_val_loss = val_loss
+            patience_counter = 0
+        else:
+            patience_counter += 1
+            if patience_counter >= patience:
+                print(f"Stopping early at epoch {epoch} due to no improvement in validation loss.")
+                break
+
+        scheduler.step()
+
     return model
 
 
-def train_cluster_gcn(args, model, batchers_train, batchers_val):
-
+def train_cluster_gcn(args, model, batchers_train, batchers_val, patience=40, seed=33):
+    set_seed(seed)
     optimizer = Adam(model.parameters(), lr=0.1)
     criterion = MSELoss()
+    best_val_loss = float('inf')
+    patience_counter = 0
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=50, gamma=0.5)
     for epoch in tqdm(range(args.n_epochs)):
         train_loss = []
@@ -68,7 +84,12 @@ def train_cluster_gcn(args, model, batchers_train, batchers_val):
 
         model.train()
         for batcher in batchers_train:
-            loader = batcher.create_random_batches()
+            if(args.batching_types == 'random'):
+                loader = batcher.create_random_batches()
+            if (args.batching_types == 'random-walk'):
+                loader = batcher.create_random_walk_batches()
+            if (args.batching_types == 'weighted-random-walk'):
+                loader = batcher.create_weighted_random_walk_batches()
             for i, batch in enumerate(loader):
                 optimizer.zero_grad()
                 out = model(batch.x, batch.edge_index).to(device)
@@ -92,27 +113,36 @@ def train_cluster_gcn(args, model, batchers_train, batchers_val):
 
         if epoch % 10 == 0:
             print(f"Epoch {epoch} Train Loss: {np.mean(train_loss)} Validation Loss: {np.mean(val_loss)}")
+
+        # if np.mean(val_loss) < best_val_loss:
+        #     best_val_loss = np.mean(val_loss)
+        #     patience_counter = 0
+        # else:
+        #     patience_counter += 1
+        #     if patience_counter >= patience:
+        #         print(f"Stopping early at epoch {epoch} due to no improvement in validation loss.")
+        #         break
     return model
 
-
 def run_training_process(all_datasets, args):
-    test_losses = []
+    val_losses = []
     models = []
     predictions = []
+    val_preds = []
     iteration_times = []
     memory_usages = []
     actual_test_dataset = all_datasets[-1]
     training_datasets = all_datasets[:-1]
-
+    model_output_dir = os.path.join('saved_models', args.model_output_dir)
+    os.makedirs(model_output_dir, exist_ok=True)
     tracemalloc.start()
-    master_batchers = [Batcher(args)(d.to(device)) for d in all_datasets[:-1]]
+    if args.task == 'cluster':
+        master_batchers = [Batcher(args)(d.to(device)) for d in all_datasets[:-1]]
     for i in range(len(training_datasets)):
         print(f"LOOCV iteration {i + 1}/{len(training_datasets)}: Testing on dataset {i + 1}")
         training_data = [data for j, data in enumerate(training_datasets) if j != i]
 
-        model = AdvancedGCNRegression(num_node_features=all_datasets[0].x.size(1),
-                            num_edge_features=(0 if all_datasets[0].edge_attr is None else all_datasets[0].edge_attr.size(1))
-                            ).to(device)
+        model = AdvancedGCNRegression(num_node_features=all_datasets[0].x.size(1)).to(device)
         if args.task == 'cluster':
             batchers_train = [master_batchers[j] for j in range(len(all_datasets)) if j != i and j != len(all_datasets) - 1]
             batchers_val = [master_batchers[i]]
@@ -121,14 +151,15 @@ def run_training_process(all_datasets, args):
         else:
             merged_training_dataset = merge_datasets(training_data)
             start_time = time.time()
-            train_gcn(args, model, [merged_training_dataset], 'adam', 0.01, 200)
-        model_path = f"model_{i}.pt"
+            train_gcn(args, model, [merged_training_dataset], training_datasets[i], 'adam', 0.01, 200)
+        model_path = os.path.join(model_output_dir, f"model_{i}.pt")
         torch.save(model.state_dict(), model_path)
         models.append(model_path)
 
-        test_loss = test(model, training_datasets[i])
-        test_losses.append(test_loss)
-        print(f'Test Loss for dataset {i + 1} as test set: {test_loss:.2f}')
+        val_loss, val_pred = test(model, training_datasets[i])
+        val_losses.append(val_loss)
+        val_preds.append(val_pred)
+        print(f'Validation Loss for dataset {i + 1} as test set: {val_loss:.2f}')
 
         model.eval()
         with torch.no_grad():
@@ -145,11 +176,12 @@ def run_training_process(all_datasets, args):
 
     tracemalloc.stop()
 
-    average_test_loss = sum(test_losses) / len(test_losses)
-    print(f'Average Valid Loss after LOOCV: {average_test_loss:.2f}')
+
     actual_labels = actual_test_dataset.y.cpu().numpy()
     individual_losses = [mean_squared_error(actual_labels, preds) for preds in predictions]
     average_individual_loss = np.mean(individual_losses)
+    average_test_loss = sum(val_losses) / len(val_losses)
+    print(f'Average Valid Loss after LOOCV: {average_test_loss:.2f}')
     print(f'Average Test Loss after LOOCV: {average_individual_loss:.2f}')
     average_predictions = np.mean(predictions, axis=0)
     ensemble_loss = mean_squared_error(actual_labels, average_predictions)
