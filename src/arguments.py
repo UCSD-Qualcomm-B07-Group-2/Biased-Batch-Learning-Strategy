@@ -16,7 +16,11 @@ def params():
                       tune is advanced techiques to fine-tune bert;\n\
                       constast is contrastive learning method",
                 choices=['cluster_gcn', 'k_clique', 'random'])
-    
+    parser.add_argument("--model-output-dir", default='saved', type=str,
+                        help="Output directory where the models are stored.")
+    parser.add_argument("--batching-types", default='random', type=str,
+                        help="Output directory where the models are stored.",
+                choices=['random', 'random-walk', 'weighted-random-walk'])
     parser.add_argument("--output-dir", default='results', type=str,
                 help="Output directory where the model predictions and checkpoints are written.")
     parser.add_argument("--model", default='gcn', type=str,
@@ -35,13 +39,13 @@ def params():
                 help="Whether to run eval on the dev set.")
     
     # Hyper-parameters for tuning
-    parser.add_argument("--batch-size", default=1, type=int,
+    parser.add_argument("--batch-size", default=20, type=int,
                 help="Batch size per GPU/CPU for training and evaluation.")
-    parser.add_argument("--learning-rate", default=3, type=float,
+    parser.add_argument("--learning-rate", default=0.01, type=float,
                 help="Model learning rate starting point.")
     parser.add_argument("--adam-epsilon", default=1e-8, type=float,
                 help="Epsilon for Adam optimizer.")
-    parser.add_argument("--n-epochs", default=1, type=int,
+    parser.add_argument("--n-epochs", default=200, type=int,
                 help="Total number of training epochs to perform.")
 
     # Arguments from AdvancedGCNRegression

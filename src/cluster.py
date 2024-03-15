@@ -24,6 +24,7 @@ import torch_geometric.typing
 
 import matplotlib.pyplot as plt
 
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 def metis(edge_index: Tensor, num_nodes: int, num_parts: int) -> Tensor:
         # Computes a node-level partition assignment vector via METIS.
@@ -42,7 +43,7 @@ def metis(edge_index: Tensor, num_nodes: int, num_parts: int) -> Tensor:
                     None,
                     num_parts,
                     False,
-                ).to(edge_index.device)
+                ).to(device)
             except (AttributeError, RuntimeError):
                 pass
 
@@ -52,7 +53,7 @@ def metis(edge_index: Tensor, num_nodes: int, num_parts: int) -> Tensor:
                 index.cpu(),
                 num_parts,
                 recursive=False,
-            ).to(edge_index.device)
+            ).to(device)
 
         if cluster is None:
             raise ImportError(f"requires either "
@@ -150,77 +151,31 @@ def random_walk(G, nodes, q):
 
     return walk
 
-# def weighted_random_walk(G, nodes, q):
-#     # Start at a random node
-#     node = np.random.choice(list(nodes))
-#     subgraph = G.subgraph(nodes)
-#     walk = [node]
-
-#     # Perform the weighted random walk
-#     for _ in range(q - 1):
-#         neighbors = [n for n in subgraph.neighbors(node) if n not in walk]
-#         if neighbors:
-#             # Get the weights of the edges to the neighbors
-#             weights = [subgraph[node][n]['weight'] for n in neighbors]
-#             # Normalize the weights
-#             weights = [w / sum(weights) for w in weights]
-#             # Choose a neighbor based on the weights
-#             node = np.random.choice(neighbors, p=weights)
-#             walk.append(node)
-#         else:
-#             break
-
-#     return walk
-
-# def weighted_random_walk(G, nodes, q):
-#     # Start at a random node
-#     start_node = np.random.choice(list(nodes))
-#     subgraph = G.subgraph(nodes)
-#     walk = [start_node]
-
-#     while len(walk) < q:
-#         current_node = walk[-1]
-#         neighbors = [n for n in subgraph.neighbors(current_node) if n not in walk]
-
-#         if not neighbors:
-#             break  # Break if there are no more neighbors to explore
-
-#         # Incorporate node importance (e.g., degree centrality)
-#         neighbor_degrees = np.array([subgraph.degree(n) for n in neighbors])
-#         weights = neighbor_degrees / neighbor_degrees.sum()  # Normalize the weights
-
-#         # Choose the next node based on weighted degree centrality
-#         next_node = np.random.choice(neighbors, p=weights)
-#         walk.append(next_node)
-
-#     return walk
-
-def weighted_random_walk(G, nodes, q, alpha=0.1):
-    if not nx.get_edge_attributes(G, "weight"):
-        for u, v in G.edges():
-            G[u][v]['weight'] = 1.0
-    node = np.random.choice(list(nodes))
+def weighted_random_walk(G, nodes, q):
+    # Start at a random node
+    start_node = np.random.choice(list(nodes))
     subgraph = G.subgraph(nodes)
-    walk = [node]
+    walk = [start_node]
 
-    for _ in range(q - 1):
-        neighbors = [n for n in subgraph.neighbors(node) if n not in walk]
+    while len(walk) < q:
+        current_node = walk[-1]
+        neighbors = [n for n in subgraph.neighbors(current_node) if n not in walk]
+
         if not neighbors:
-            break
-        edge_weights = np.array([subgraph[node][n]['weight'] for n in neighbors])
+            break  # Break if there are no more neighbors to explore
+
         # Incorporate node importance (e.g., degree centrality)
         neighbor_degrees = np.array([subgraph.degree(n) for n in neighbors])
-        combined_weights = edge_weights * neighbor_degrees
-        probabilities = combined_weights / combined_weights.sum()
-        next_node = np.random.choice(neighbors, p=probabilities)
+        weights = neighbor_degrees / neighbor_degrees.sum()  # Normalize the weights
+
+        # Choose the next node based on weighted degree centrality
+        next_node = np.random.choice(neighbors, p=weights)
         walk.append(next_node)
-        G[node][next_node]['weight'] *= alpha
-        G[next_node][node]['weight'] *= alpha  # If the graph is undirected
-        node = next_node
+
     return walk
 
+
 def create_batch(clusters, cluster_ids):
-    batch = None
     edge_index = []
     x = []
     y = []
@@ -228,46 +183,41 @@ def create_batch(clusters, cluster_ids):
     new_partptr = np.insert(np.cumsum(new_partptr), 0, 0)
     cluster_id_to_id = dict(zip(cluster_ids, range(len(cluster_ids))))
 
-    total_between_cluster_edges = 0
-
     for i, cluster in enumerate(clusters):
         cluster_id, data = cluster
 
-        # building combined edge_index
+        # Ensure tensors are moved to the device
+        data.x = data.x.to(device)
+        data.y = data.y.to(device)
+        data.edge_index = data.edge_index.to(device)
+
+        # Building combined edge_index
         edge_index.append(data.edge_index + new_partptr[i])
-        # building combined x data
+        # Building combined x data
         x.append(data.x.float())
-        # building combined y data
+        # Building combined y data
         y.append(data.y.float())
-        
-        # building combined between_edges
+
+        # Building combined between_edges
         for target_cluster_id, edges in data.between_edges.items():
             if target_cluster_id in cluster_ids:
-                total_between_cluster_edges += edges.shape[0]
-                edges_copy = torch.clone(edges)
-                edges_copy[0] += new_partptr[cluster_id_to_id[cluster_id]]    
-                edges_copy[1] += new_partptr[cluster_id_to_id[target_cluster_id]] 
+                edges_copy = torch.clone(edges).to(device)
+                edges_copy[0] += new_partptr[cluster_id_to_id[cluster_id]]
+                edges_copy[1] += new_partptr[cluster_id_to_id[target_cluster_id]]
                 edge_index.append(edges_copy)
-    
-        
 
-    return Data(x=torch.cat(x, dim=0), y=torch.cat(y, dim=0), edge_index=torch.cat(edge_index, dim=1)), total_between_cluster_edges
+    return Data(x=torch.cat(x, dim=0), y=torch.cat(y, dim=0), edge_index=torch.cat(edge_index, dim=1)).to(device)
 
-def create_batches(groups, cluster_data, get_stats=False):
-    total_between_cluster_edges = 0
+def create_batches(groups, cluster_data):
     batches = []
     for group in groups:
         clusters = []
         for cluster_id in sorted(group):
             clusters.append  ((cluster_id, cluster_data[cluster_id]))
         batch = create_batch(clusters, sorted(group))
-        batches.append(batch[0])
-        total_between_cluster_edges += batch[1]
+        batches.append(batch)
         # batches.append(batch)
     
-    if get_stats:
-        return total_between_cluster_edges
-
     return batches
 
 

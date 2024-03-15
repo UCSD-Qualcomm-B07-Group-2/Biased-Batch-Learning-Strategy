@@ -9,6 +9,9 @@ import networkx as nx
 from torch_geometric.utils import to_networkx, from_networkx
 from cluster import create_graph_and_clusters, create_batches, sample_groups
 
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
+
 class Batcher:
     """
     A class used to create batches of data.
@@ -238,13 +241,9 @@ class Batcher:
         batches = create_batches(groups, self.clusters)
         return DataLoader(batches)
     
-    def create_weighted_random_walk_batches(self, get_stats=False):
+    def create_weighted_random_walk_batches(self):
         # samples the groups of clusters that will turn into batches
         groups = sample_groups(self.graph, self.batch_size, method="wrw")
         # given the groups this will batch them
-        if get_stats:
-            return create_batches(groups, self.clusters, get_stats=True)
-        
         batches = create_batches(groups, self.clusters)
-
         return DataLoader(batches)
