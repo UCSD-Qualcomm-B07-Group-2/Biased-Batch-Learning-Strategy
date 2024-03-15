@@ -201,36 +201,5 @@ if __name__ == '__main__':
     all_datasets = load_cache_v2()
     print("loaded")
     run_training_process(all_datasets, args)
-    # write a function that checks if cache exists
-    # print('Loading Cache')
-    # dataset = load_cache(args)
-    # print(f'Loaded {len(dataset)} from cache')
-    #
-    # train = [dataset[0], dataset[2], dataset[3]]
-    # val = [dataset[4]]
-    # test = [dataset[5]]
-
-    # if args.task == 'baseline':
-    #     model = AdvancedGCNRegression(22, 128, 4)
-    #     train_gcn(args, model, dataset[0])
-    #     run_eval(args, model, dataset, split='test')
-    # elif args.task == 'cluster':
-
-    # model = AdvancedGCNRegression(26, 0)
-    # print('Model initialized')
-    # batchers_train = [Batcher(args)(d) for d in train]
-    # batchers_val = [Batcher(args)(d) for d in val]
-    # batchers_test = [Batcher(args)(d) for d in test]
-
-    # HOW TO CALL DIFFERENT TYPE OF BATCHING
-    # print(batcher.create_random_batches())
-    # print(batcher.create_random_walk_batches())
-    # print(batcher.create_weighted_random_walk_batches())
-
-    # print('Data loader initialized')
-
-    # SRUJAN OR WHOEVER REPLACE THIS WITH YOUR MODEL TRAINING. MAKE SURE TO TAKE IN TRAINING ARGS AND BATCHER
-    # train_cluster_gcn(args, model, batchers_train, batchers_val)
-    # run_eval(args, model, dataset, split='test')
 
 
