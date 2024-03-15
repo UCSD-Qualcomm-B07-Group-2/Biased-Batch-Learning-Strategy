@@ -20,5 +20,5 @@
 # --n-epochs: The total number of training epochs to perform.
 
 # Run main.py with different combinations of arguments
-python main.py --task cluster --batcher cluster_gcn --dataset xbar --batch-size 3 --learning-rate 0.001 --drop-rate 0.1 --n-epochs 2000
+python main.py --task cluster --batcher cluster_gcn --dataset xbar --batch-size 3 --learning-rate 0.01 --dropout-rate 0.1 --n-epochs 2000
 # python main.py --task baseline --batcher k_clique --dataset xbar --batch-size 32 --learning-rate 0.00001 --drop-rate 0.1 --n-epochs 1000

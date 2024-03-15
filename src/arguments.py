@@ -45,9 +45,9 @@ def params():
                 help="Total number of training epochs to perform.")
 
     # Arguments from AdvancedGCNRegression
-    parser.add_argument("--num-node-features", type=int, required=True,
+    parser.add_argument("--num-node-features", type=int,
                         help="Number of node features")
-    parser.add_argument("--num-edge-features", type=int, required=True,
+    parser.add_argument("--num-edge-features", type=int,
                         help="Number of edge features")
     parser.add_argument("--conv1-out-features", default=16, type=int,
                         help="Number of output features for the first GCN convolution layer")

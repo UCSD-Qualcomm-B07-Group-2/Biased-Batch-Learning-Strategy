@@ -238,9 +238,13 @@ class Batcher:
         batches = create_batches(groups, self.clusters)
         return DataLoader(batches)
     
-    def create_weighted_random_walk_batches(self):
+    def create_weighted_random_walk_batches(self, get_stats=False):
         # samples the groups of clusters that will turn into batches
         groups = sample_groups(self.graph, self.batch_size, method="wrw")
         # given the groups this will batch them
+        if get_stats:
+            return create_batches(groups, self.clusters, get_stats=True)
+        
         batches = create_batches(groups, self.clusters)
+
         return DataLoader(batches)

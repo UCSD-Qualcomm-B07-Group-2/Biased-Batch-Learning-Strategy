@@ -110,7 +110,7 @@ def load_data():
             one_hot_feature_columns = list(range(17))  # Assuming these are the indices of your one-hot encoded features
             original_feature_columns = [
                 'betweenness', 'clustering_coeff', 'pagerank', 'eigenvector_centrality',
-                'degree', 'xloc', 'yloc', 'cell', 'orient'
+                'degree', 'xloc', 'yloc', 'cell', 'orient', 'capacity'
             ]
             feature_columns = original_feature_columns + one_hot_feature_columns
 
