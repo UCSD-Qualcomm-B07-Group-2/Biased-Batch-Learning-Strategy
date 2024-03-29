@@ -4,7 +4,7 @@ This repository contains the code and supporting materials for a modified versio
 
 ## Paper
 
-The accompanying paper, "Walking Cluster-GCN", provides a detailed explanation of the modifications made to the original Cluster-GCN algorithm and presents experimental results demonstrating the improvements achieved by our approach. You can read the paper [here](link-to-your-paper).
+The accompanying paper, "Walking Cluster-GCN", provides a detailed explanation of the modifications made to the original Cluster-GCN algorithm and presents experimental results demonstrating the improvements achieved by our approach. You can read the paper [here](https://drive.google.com/file/d/1ouMfxmZm9oltgq5J7yZiXt1gXl7XL1-v/view).
 
 ## Code
 
